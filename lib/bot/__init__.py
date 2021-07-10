@@ -14,7 +14,7 @@ PREFIX = '+'
 
 OWNER_IDS = [485054727755792410]
 
-COGS = ["meta"]
+COGS = ["meta", "reminders"]
 
 class Ready(object):
   def __init__(self):
@@ -75,7 +75,7 @@ class Bot(BotBase):
         await self.invoke(ctx)
 
       else:
-        await ctx.send("Aún no estoy listo para recibir comandos, por favor espera unos segundos.")
+        await ctx.send("Aún no estoy lista para recibir comandos, por favor espera unos segundos.")
 
   async def on_connect(self):
     print('bot connected')
@@ -109,7 +109,7 @@ class Bot(BotBase):
 
       self.scheduler.start()
 
-      await self.mizulog.send("Estoy listo, estoy listo, estoy listo, estoy listo!")
+      await self.mizulog.send("Estoy lista, estoy lista, estoy lista, estoy lista!")
       self.ready = True
       print("bot ready")
 
