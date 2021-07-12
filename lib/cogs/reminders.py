@@ -44,6 +44,15 @@ class Reminders(Cog):
 
       await self.set_users(horas, author, channel)
 
+  @command()
+  async def bugfix(ctx, self):
+      author = "<@728054482533089360>"
+      channel = 830443858507989023
+      horas = "10,12,15,17,20"
+
+      db.execute("INSERT OR IGNORE INTO users (ReminderAuthor, ReminderChannel, ReminderHours) VALUES (?, ?, ?)", author, channel, horas)
+      db.commit()
+
   async def set_users(self, horas, author, channel):
 
       db.execute("INSERT OR IGNORE INTO users (ReminderAuthor, ReminderChannel, ReminderHours) VALUES (?, ?, ?)", author, channel, horas)
@@ -81,19 +90,18 @@ class Reminders(Cog):
           for hour in hours:
             reminder_time = hour
             remindertext = random.choice(reminderoptions)
-            reminder_id = random.randint(1, 100000)
 
-            internal_id = f'{author}-{reminder_time.strftime("%d/%m %H:%M")}'
+            reminder_id = f'{author}-{reminder_time.strftime("%d/%m %H:%M")}'
 
             if reminder_time < datetime.now():
                 pass
 
             else:
-                db.execute("INSERT OR IGNORE INTO reminders (ReminderTime, InternalID, ReminderID, ReminderText, ReminderAuthor, ReminderChannel) VALUES (?, ?, ?, ?, ?, ?)", reminder_time, internal_id, reminder_id, remindertext, author, channel)
+                db.execute("INSERT OR IGNORE INTO reminders (ReminderTime, ReminderID, ReminderText, ReminderAuthor, ReminderChannel) VALUES (?, ?, ?, ?, ?)", reminder_time, reminder_id, remindertext, author, channel)
 
-                amountdb_date = datetime.now().strftime("%d/%m")
+                amountdb_date = datetime.now().strftime("%d/%m/%Y")
 
-                db.execute("INSERT OR IGNORE INTO amounts (ReminderDate, ReminderAuthor, ReminderID, InternalID) VALUES (?, ?, ?, ?)", amountdb_date, author, reminder_id, internal_id)
+                db.execute("INSERT OR IGNORE INTO amounts (ReminderDate, ReminderAuthor) VALUES (?, ?)", amountdb_date, author)
 
                 db.commit()
 
@@ -126,16 +134,23 @@ class Reminders(Cog):
                 reminderauthor = str(reminderauthor[0])
 
                 channel = int(reminderchannel[0])
+                print(channel)
+                print(type(channel))
 
                 self.channel = self.bot.get_channel(channel)
+                print(type(self.channel))
 
-                reminder = await self.channel.send(f"{reminderauthor}: **{remindertext}** (ID: {reminder_id})")
+                reminder = await self.channel.send(f"{reminderauthor}: **{remindertext}**")
 
-                await reminder.add_reaction("✅")
+                await reminder.add_reaction("☑️")
 
                 db.execute("DELETE FROM reminders WHERE ReminderID = ?", reminder_id)
 
                 db.commit()
+
+  @check_reminder.before_loop
+  async def before_check(self):
+      await self.bot.wait_until_ready()
 
   @Cog.listener()
   async def on_raw_reaction_add(self, payload):
@@ -143,8 +158,7 @@ class Reminders(Cog):
       pass
 
     else:
-
-      if payload.emoji.name == "✅":
+      if payload.emoji.name == "☑️":
         channel = self.bot.get_channel(payload.channel_id)
         message = await channel.fetch_message(payload.message_id)
         msgcontent = message.content
@@ -153,14 +167,12 @@ class Reminders(Cog):
         author = str(re.search("(\d+)", msgcontent)[0])
 
         if author == str(user.id):
-
-            reminder_id = re.search("(?<=ID: )([0-9]*)", msgcontent)[0]
-            await self.water_amount(channel, reminder_id, user)
+            await self.water_amount(channel, user)
 
         else:
             pass
 
-  async def water_amount(self, channel, reminder_id, user):
+  async def water_amount(self, channel, user):
 
     await channel.send("Cuánta agua tomaste? (escribir solo número en mL)")
 
@@ -168,8 +180,13 @@ class Reminders(Cog):
         message = await self.bot.wait_for('message', timeout=20, check=lambda message: message.author == user)
 
         amount = int(message.content)
+        print(amount)
 
-        db.execute("UPDATE amounts SET WaterAmount = ? WHERE ReminderID = ?", amount, reminder_id)
+        user = user.mention
+
+        today = datetime.now().strftime("%d/%m/%Y")
+
+        db.execute("UPDATE amounts SET WaterAmount = WaterAmount + ? WHERE ReminderDate = ? AND ReminderAuthor = ?", amount, today, user)
 
         db.commit()
 
@@ -178,17 +195,29 @@ class Reminders(Cog):
     except:
         await channel.send("Debes ingresar una cantidad válida! Intenta reaccionando de nuevo.")
 
-  @command()
+  @command(aliases=["total"])
   async def daily(self, ctx):
-      today = datetime.now().strftime("%d/%m")
+      today = datetime.now().strftime("%d/%m/%Y")
       author = ctx.message.author.mention
-      daily_total = db.record("SELECT SUM(WaterAmount) FROM amounts WHERE ReminderDate = ? and ReminderAuthor = ?", today, author)
+      daily_total = db.record("SELECT WaterAmount FROM amounts WHERE ReminderDate = ? and ReminderAuthor = ?", today, author)
       daily_total = daily_total[0]
 
       await ctx.send(f"Has tomado {daily_total} mL de agua hoy.")
 
+  @command(aliases=["agregar", "agua"])
+  async def add_water(self, ctx, *args):
+      today = datetime.now().strftime("%d/%m/%Y")
+      author = ctx.message.author.mention
+      amount = int(str(''.join(args)))
+
+      db.execute("UPDATE amounts SET WaterAmount = WaterAmount + ? WHERE ReminderDate = ? AND ReminderAuthor = ?", amount, today, author)
+      db.commit()
+
+      await ctx.message.add_reaction("🚰")
+
   @Cog.listener()
   async def on_ready(self):
+
     if not self.bot.ready:
       self.bot.cogs_ready.ready_up("reminders")
 

@@ -14,7 +14,7 @@ PREFIX = '+'
 
 OWNER_IDS = [485054727755792410]
 
-COGS = ["meta", "reminders"]
+COGS = ["meta", "reminders", "ayuda"]
 
 class Ready(object):
   def __init__(self):
@@ -123,6 +123,5 @@ class Bot(BotBase):
 
     if not message.author.bot:
       await self.process_commands(message)
-
-
+      
 bot = Bot()

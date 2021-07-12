@@ -6,8 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS reminders (
   ReminderTime DATE,
-  InternalID VARCHAR PRIMARY KEY,
-  ReminderID NUMERIC,
+  ReminderID VARCHAR PRIMARY KEY,
   ReminderText VARCHAR,
   ReminderAuthor VARCHAR,
   ReminderChannel NUMERIC
@@ -15,8 +14,6 @@ CREATE TABLE IF NOT EXISTS reminders (
 
 CREATE TABLE IF NOT EXISTS amounts (
   ReminderDate VARCHAR,
-  InternalID VARCHAR PRIMARY KEY,
-  ReminderAuthor VARCHAR,
-  ReminderID NUMERIC,
+  ReminderAuthor VARCHAR PRIMARY KEY,
   WaterAmount NUMERIC DEFAULT 0
 );
