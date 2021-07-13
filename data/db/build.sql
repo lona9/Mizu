@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS reminders (
 
 CREATE TABLE IF NOT EXISTS amounts (
   ReminderDate VARCHAR,
-  ReminderAuthor VARCHAR PRIMARY KEY,
+  ReminderAuthor VARCHAR,
+  AmountID VARCHAR PRIMARY KEY,
   WaterAmount NUMERIC DEFAULT 0
 );

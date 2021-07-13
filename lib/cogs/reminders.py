@@ -17,7 +17,7 @@ class Reminders(Cog):
   def __init__(self, bot):
     self.bot = bot
     self.set_reminders.start()
-    self.check_reminder.start()
+    # self.check_reminder.start()
 
   @command(aliases=["start"])
   async def start_reminders(self, ctx):
@@ -44,19 +44,23 @@ class Reminders(Cog):
 
       await self.set_users(horas, author, channel)
 
-  @command()
-  async def bugfix(ctx, self):
-      author = "<@728054482533089360>"
-      channel = 830443858507989023
-      horas = "10,12,15,17,20"
-
-      db.execute("INSERT OR IGNORE INTO users (ReminderAuthor, ReminderChannel, ReminderHours) VALUES (?, ?, ?)", author, channel, horas)
-      db.commit()
+  # @command()
+  # async def bugfix(self, ctx):
+  #     author = "<@728054482533089360>"
+  #     channel = 830443858507989023
+  #     horas = "10,12,15,17,20"
+  #
+  #     db.execute("INSERT OR IGNORE INTO users (ReminderAuthor, ReminderChannel, ReminderHours) VALUES (?, ?, ?)", author, channel, horas)
+  #     db.commit()
 
   async def set_users(self, horas, author, channel):
 
-      db.execute("INSERT OR IGNORE INTO users (ReminderAuthor, ReminderChannel, ReminderHours) VALUES (?, ?, ?)", author, channel, horas)
+      db.execute("UPDATE users SET ReminderChannel = ?, ReminderHours = ? WHERE ReminderAuthor = ?", channel, horas, author)
       db.commit()
+
+  @command()
+  async def startreminders(self, ctx):
+      self.check_reminder.start()
 
   @tasks.loop(seconds=1)
   async def set_reminders(self):
@@ -93,15 +97,17 @@ class Reminders(Cog):
 
             reminder_id = f'{author}-{reminder_time.strftime("%d/%m %H:%M")}'
 
+            amountdb_date = datetime.now().strftime("%d/%m/%Y")
+
+            amount_id = f'{author}-{amountdb_date}'
+
             if reminder_time < datetime.now():
                 pass
 
             else:
                 db.execute("INSERT OR IGNORE INTO reminders (ReminderTime, ReminderID, ReminderText, ReminderAuthor, ReminderChannel) VALUES (?, ?, ?, ?, ?)", reminder_time, reminder_id, remindertext, author, channel)
 
-                amountdb_date = datetime.now().strftime("%d/%m/%Y")
-
-                db.execute("INSERT OR IGNORE INTO amounts (ReminderDate, ReminderAuthor) VALUES (?, ?)", amountdb_date, author)
+                db.execute("INSERT OR IGNORE INTO amounts (ReminderDate, ReminderAuthor, AmountID) VALUES (?, ?, ?)", amountdb_date, author, amount_id)
 
                 db.commit()
 
@@ -134,11 +140,8 @@ class Reminders(Cog):
                 reminderauthor = str(reminderauthor[0])
 
                 channel = int(reminderchannel[0])
-                print(channel)
-                print(type(channel))
 
                 self.channel = self.bot.get_channel(channel)
-                print(type(self.channel))
 
                 reminder = await self.channel.send(f"{reminderauthor}: **{remindertext}**")
 
