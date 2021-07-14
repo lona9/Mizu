@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS users (
   ReminderAuthor VARCHAR PRIMARY KEY,
-  ReminderChannel NUMERIC,
+  ReminderChannel VARCHAR,
   ReminderHours VARCHAR
 );
 
@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS reminders (
   ReminderID VARCHAR PRIMARY KEY,
   ReminderText VARCHAR,
   ReminderAuthor VARCHAR,
-  ReminderChannel NUMERIC
+  ReminderChannel VARCHAR
 );
 
 CREATE TABLE IF NOT EXISTS amounts (

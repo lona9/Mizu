@@ -17,7 +17,7 @@ class Reminders(Cog):
   def __init__(self, bot):
     self.bot = bot
     self.set_reminders.start()
-    # self.check_reminder.start()
+    self.check_reminder.start()
 
   @command(aliases=["start"])
   async def start_reminders(self, ctx):
@@ -54,13 +54,13 @@ class Reminders(Cog):
   #     db.commit()
 
   async def set_users(self, horas, author, channel):
-
-      db.execute("UPDATE users SET ReminderChannel = ?, ReminderHours = ? WHERE ReminderAuthor = ?", channel, horas, author)
+      db.execute("INSERT OR IGNORE INTO users (ReminderChannel, ReminderHours, ReminderAuthor) VALUES (?, ?, ?)", channel, horas, author)
       db.commit()
 
   @command()
   async def startreminders(self, ctx):
       self.check_reminder.start()
+      await ctx.message.add_reaction("☑️")
 
   @tasks.loop(seconds=1)
   async def set_reminders(self):
