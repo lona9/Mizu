@@ -37,12 +37,15 @@ class Reminders(Cog):
 
       if "mL" not in message.content or " " not in message.content:
           horas = message.content
-          await ctx.send("Te recordaré que tomes agua de ahora en adelante.")
+
+          db.execute("INSERT OR IGNORE INTO users (ReminderChannel, ReminderHours, ReminderAuthor) VALUES (?, ?, ?)", channel, horas, author)
+
+          db.commit()
+
+          await ctx.send("Te recordaré que tomes agua por este canal de ahora en adelante.")
 
       else:
           await ctx.send("Debes ingresar los números de forma correcta, en formato 0-24, y separados por comas sin espacios (ejemplo: 8,12,15,20,22)")
-
-      await self.set_users(horas, author, channel)
 
   # @command()
   # async def bugfix(self, ctx):
@@ -53,14 +56,28 @@ class Reminders(Cog):
   #     db.execute("INSERT OR IGNORE INTO users (ReminderAuthor, ReminderChannel, ReminderHours) VALUES (?, ?, ?)", author, channel, horas)
   #     db.commit()
 
-  async def set_users(self, horas, author, channel):
-      db.execute("INSERT OR IGNORE INTO users (ReminderChannel, ReminderHours, ReminderAuthor) VALUES (?, ?, ?)", channel, horas, author)
-      db.commit()
-
   @command()
-  async def startreminders(self, ctx):
-      self.check_reminder.start()
-      await ctx.message.add_reaction("☑️")
+  async def reset(self, ctx):
+      author = ctx.message.author.mention
+      channel = ctx.channel.id
+
+      ahora = datetime.now()
+
+      await ctx.send(f'Escribe las nuevas horas en que quieres recibir los recordatorios en formato 0-24 horas, y separadas por comas sin espacios (ejemplo: 9,12,16,19). Considerar hora actual: {ahora.strftime("%H:%M")}.\n**El bot genera las notificaciones diariamente, por lo que es posible que queden notificaciones en el horario o canal viejo durante el día del cambio, y se normalizará al siguiente día.**')
+
+      message = await self.bot.wait_for('message', timeout=20, check=lambda message: message.author == ctx.author)
+
+      if "mL" not in message.content or " " not in message.content:
+          horas = message.content
+
+          db.execute("UPDATE users SET ReminderChannel = ?, ReminderHours = ? WHERE ReminderAuthor = ?", channel, horas, author)
+
+          db.commit()
+
+          await ctx.send("Tus horarios y canal de notificación han sido actualizados.")
+
+      else:
+          await ctx.send("Debes ingresar los números de forma correcta, en formato 0-24, y separados por comas sin espacios (ejemplo: 8,12,15,20,22)")
 
   @tasks.loop(seconds=1)
   async def set_reminders(self):
@@ -200,23 +217,32 @@ class Reminders(Cog):
 
   @command(aliases=["total"])
   async def daily(self, ctx):
-      today = datetime.now().strftime("%d/%m/%Y")
-      author = ctx.message.author.mention
-      daily_total = db.record("SELECT WaterAmount FROM amounts WHERE ReminderDate = ? and ReminderAuthor = ?", today, author)
-      daily_total = daily_total[0]
+      try:
+          today = datetime.now().strftime("%d/%m/%Y")
+          author = ctx.message.author.mention
+          daily_total = db.record("SELECT WaterAmount FROM amounts WHERE ReminderDate = ? and ReminderAuthor = ?", today, author)
+          daily_total = daily_total[0]
 
-      await ctx.send(f"Has tomado {daily_total} mL de agua hoy.")
+          await ctx.send(f"Has tomado {daily_total} mL de agua hoy.")
+
+      except:
+          await ctx.send("No estás en el registro de usuaries. Escribe +start para iniciar tus recordatorios y seguimiento de agua.")
+
 
   @command(aliases=["agregar", "agua"])
   async def add_water(self, ctx, *args):
-      today = datetime.now().strftime("%d/%m/%Y")
-      author = ctx.message.author.mention
-      amount = int(str(''.join(args)))
+      try:
+          today = datetime.now().strftime("%d/%m/%Y")
+          author = ctx.message.author.mention
+          amount = int(str(''.join(args)))
 
-      db.execute("UPDATE amounts SET WaterAmount = WaterAmount + ? WHERE ReminderDate = ? AND ReminderAuthor = ?", amount, today, author)
-      db.commit()
+          db.execute("UPDATE amounts SET WaterAmount = WaterAmount + ? WHERE ReminderDate = ? AND ReminderAuthor = ?", amount, today, author)
+          db.commit()
 
-      await ctx.message.add_reaction("🚰")
+          await ctx.message.add_reaction("🚰")
+
+      except:
+          await ctx.send("No estás en el registro de usuaries. Escribe +start para iniciar tus recordatorios y seguimiento de agua.")
 
   @Cog.listener()
   async def on_ready(self):
